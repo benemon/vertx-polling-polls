@@ -1,0 +1,167 @@
+<html>
+
+    <head>
+        <meta charset="utf-8">
+        <title>GE2017 Trend Visualiser</title>
+        
+        <!-- styles -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+            crossorigin="anonymous">
+        </link>
+        
+        <style type="text/css">
+            .defaultForm {
+                width: 25%;
+                clear: both;
+            }
+
+            .defaultForm input {
+                width: 50%;
+                clear: both;
+            }
+
+        </style>
+        
+        <!-- script imports -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
+    </head>
+
+    <body>
+        <div class="container">
+        
+            <div>
+                <h1>#GE2017 Trend Visualiser</h1>
+                <p class="lead">The purpose of this application is to demonstrate the combination of Vert.x services providing data to a
+                    standard JavaScript frontend.
+                </p>
+            </div>
+            
+            <h2>Using the Visualiser</h2>
+            
+            <form class="defaultForm" onload="addOptions();">
+                <div class="form-group" align="left">
+                    <label for="company">Poll</label> <select id="company"></select>
+                    <br>
+                    <br>
+                    <label for="sampleSize">Sample Size</label> <input type="number" min="2" class="form-control" id="sampleSize"
+                        placeholder="yg">
+                </div>
+                <br>
+                <button id="go" type="submit" class="btn btn-success">Go!</button>
+            </form>
+            
+            <canvas id="pollChart"></canvas>
+            
+        </div>
+        
+        <script>
+            function runVisualiser()
+            {
+                var c = $("#dd").val() || "yg";
+                var s = $("#sampleSize").val() || "5";
+
+                $.ajax(
+                {
+                    url: '/api/polls/' + c + '/westvi?limit=' + s,
+                    dataType: 'json',
+                }).done(function(json)
+                {
+
+                    var response = json;
+                    var partyData = [];
+                    var labels = [];
+
+                    response.forEach((client) =>
+                    {
+
+                        labels[client.date] = client.date;
+                        Object.keys(client.headline).map((key) =>
+                        {
+
+                            var headline = client.headline[key];
+                            var party = partyData[headline.party.name];
+                            if (party == null)
+                            {
+                                party = {
+                                    label: headline.party.name,
+                                    colour: headline.party.colour,
+                                    data: [headline.pct]
+                                }
+                            }
+                            else
+                            {
+                                party.data.push(headline.pct);
+
+                            }
+                            partyData[headline.party.name] = party;
+
+                        });
+
+                    });
+
+                    var data = {
+                        labels: Object.keys(labels).reverse(),
+                        datasets: Object.keys(partyData).map((key) =>
+                        {
+                            var party = partyData[key];
+                            var colour = "#" + party.colour.toLowerCase();
+                            return {
+                                label: party.label,
+                                borderColor: colour,
+                                data: party.data.reverse()
+                            }
+                        })
+                    };
+
+                    var ctx = document.getElementById("pollChart").getContext("2d");
+
+                    new Chart(ctx,
+                    {
+                        type: "line",
+                        data: data
+                    });
+                });
+            }
+
+            function addCompanies()
+            {
+
+                $.ajax(
+                {
+                    url: '/api/companies',
+                    dataType: 'json',
+                }).done(function(json)
+                {
+
+                    var select = document.getElementById('company');
+                    var option;
+                    Object.keys(json).sort().map((key) =>
+                    {
+                        var company = json[key];
+                        option = document.createElement('option');
+                        option.text = company.name;
+                        option.value = company.code;
+                        select.add(option);
+                    });
+
+                });
+            }
+
+            $(document).ready(function()
+            {
+                $("#go").click(function(e)
+                {
+                    runVisualiser();
+                    e.preventDefault();
+                });
+
+                addCompanies();
+            });
+
+        </script>
+    </body>
+
+</html>
