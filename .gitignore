@@ -129,4 +129,4 @@ nbactions.xml
 .nb-gradle/
 .vertx/**
 
-**/*/.DS_Store
+.DS_Store
