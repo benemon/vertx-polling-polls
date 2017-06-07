@@ -108,6 +108,8 @@ objects:
         - env:
           - name: OB_API_KEY
             value: ${OPINIONBEE_API_KEY}
+          - name: JAVA_OPTIONS
+            value: -Djava.net.preferIPv4Stack=true
           image: visualiser:latest
           imagePullPolicy: Always
           name: visualiser
