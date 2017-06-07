@@ -9,7 +9,7 @@
 	</parent>
 
 	<groupId>com.redhat.ukiservices.bh</groupId>
-	<artifactId>pollingpolls</artifactId>
+	<artifactId>vertx-polling-polls</artifactId>
 
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -21,7 +21,7 @@
 		<vertx.version>3.4.1</vertx.version>
 		<vertx-maven-plugin.version>1.0.8</vertx-maven-plugin.version>
 
-		<vertx.verticle>com.redhat.ukiservices.pollingpolls.PollPollingVerticle</vertx.verticle>
+		<vertx.verticle>com.redhat.ukiservices.bootstrap.BootstrapVerticle</vertx.verticle>
 	</properties>
 
 	<dependencyManagement>
