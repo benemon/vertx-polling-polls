@@ -127,4 +127,6 @@ dist/
 nbdist/
 nbactions.xml
 .nb-gradle/
-.vertx/
+.vertx/**
+
+**/*/.DS_Store
