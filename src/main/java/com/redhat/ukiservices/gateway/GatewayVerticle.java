@@ -4,6 +4,7 @@ import com.redhat.ukiservices.common.CommonConstants;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -48,7 +49,10 @@ public class GatewayVerticle extends AbstractVerticle {
 		router.get("/api/companies").handler(this::getCompanies);
 		router.get("/*").handler(StaticHandler.create());
 
-		vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+		HttpServer server = vertx.createHttpServer().requestHandler(router::accept)
+				.listen(config().getInteger("http.port", 8080), ar -> {
+					online = ar.succeeded();
+				});
 	}
 
 	private void getCompanies(RoutingContext rc) {
@@ -60,9 +64,7 @@ public class GatewayVerticle extends AbstractVerticle {
 			if (ar.succeeded()) {
 				JsonObject job = (JsonObject) ar.result().body();
 				rc.response().end(job.encodePrettily());
-			}
-			else
-			{
+			} else {
 				rc.response().setStatusCode(500);
 			}
 		});
@@ -80,9 +82,7 @@ public class GatewayVerticle extends AbstractVerticle {
 			if (ar.succeeded()) {
 				JsonArray job = (JsonArray) ar.result().body();
 				rc.response().end(job.encodePrettily());
-			}
-			else
-			{
+			} else {
 				rc.response().setStatusCode(500);
 			}
 		});
