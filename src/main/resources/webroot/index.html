@@ -66,6 +66,9 @@
         </div>
 
         <script>
+        	// keep chart object in global scope
+        	var pollResultsChart;
+        	
             function runVisualiser()
             {
                 var c = $("#company").val() || "yg";
@@ -128,7 +131,12 @@
 
                     var ctx = document.getElementById("pollChart").getContext("2d");
 
-                    new Chart(ctx,
+					if (pollResultsChart != null)
+					{
+						pollResultsChart.destroy();
+					}
+					
+                    pollResultsChart = new Chart(ctx,
                     {
                         type: "line",
                         data: data
