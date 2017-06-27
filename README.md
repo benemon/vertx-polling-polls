@@ -11,7 +11,6 @@ The API endpoints are:
 
 * `/api/polls/{polling company}/{poll type}?[limit={sample size}]` - GET - where "polling company" is the company executing the poll (e.g. YouGov), and "poll type' is the type of poll being executed e.g. "Westminster voting intension". See OB API docs for details.
 
-
 * `/api/companies` - GET - returns the list of Polling Companies
 
 And...that's about it.
