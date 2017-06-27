@@ -14,5 +14,3 @@ The API endpoints are:
 * `/api/companies` - GET - returns the list of Polling Companies
 
 And...that's about it.
-
- 
