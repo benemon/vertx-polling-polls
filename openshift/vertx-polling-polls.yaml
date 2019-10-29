@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: vertx-polling-polls
@@ -61,7 +61,7 @@ objects:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: redhat-openjdk18-openshift:latest
+          name: java:8
           namespace: openshift
       type: Source
     triggers:
