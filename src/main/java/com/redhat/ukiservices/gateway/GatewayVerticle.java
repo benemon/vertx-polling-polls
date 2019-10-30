@@ -47,7 +47,6 @@ public class GatewayVerticle extends AbstractVerticle {
 		router.get("/api/health/liveness").handler(healthCheckHandler);
 		router.get("/api/polls/:company/:pollType").handler(this::getPollData);
 		router.get("/api/companies").handler(this::getCompanies);
-		router.get("/*").handler(StaticHandler.create());
 
 		HttpServer server = vertx.createHttpServer().requestHandler(router::accept)
 				.listen(config().getInteger("http.port", 8080), ar -> {
