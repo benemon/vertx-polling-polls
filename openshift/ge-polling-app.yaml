@@ -1,0 +1,493 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ge-polling-app
+parameters:
+  - name: BACKEND_GIT_REPO
+    description: "Backend source code repository"
+    required: true
+    value: https://github.com/benemon/vertx-polling-polls
+
+  - name: UI_GIT_REPO
+    description: "UI source code repository"
+    required: true
+    value: https://github.com/benemon/nodejs-polling-polls
+    
+  - name: BACKEND_GIT_REF
+    value: sm
+    description: "Backend source code tree"
+    required: true
+
+  - name: UI_GIT_REF
+    value: master
+    description: "UI source code tree"
+    required: true
+    
+  - name: OPINIONBEE_API_KEY
+    description: "Opinion Bee API Key"
+    required: true
+
+# Standard OpenShift objects
+
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${BACKEND_GIT_REF}
+      app.openshift.io/vcs-uri: ${BACKEND_GIT_REPO}
+    labels:
+      app: ge-backend
+      app.kubernetes.io/component: ge-backend
+      app.kubernetes.io/instance: ge-backend
+      app.kubernetes.io/name: ge-backend
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: java
+      app.openshift.io/runtime-version: "8"
+    name: ge-backend
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: ge-backend:latest
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status: {}
+
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${UI_GIT_REF}
+      app.openshift.io/vcs-uri: ${UI_GIT_REPO}
+    labels:
+      app: ge-ui
+      app.kubernetes.io/component: ge-ui
+      app.kubernetes.io/instance: ge-ui
+      app.kubernetes.io/name: nodejs
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: "10"
+    name: ge-ui
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: ge-ui:latest
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status: {}
+    
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${BACKEND_GIT_REF}
+      app.openshift.io/vcs-uri: ${BACKEND_GIT_REPO}
+    labels:
+      app: ge-backend
+      app.kubernetes.io/component: ge-backend
+      app.kubernetes.io/instance: ge-backend
+      app.kubernetes.io/name: ge-backend
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: java
+      app.openshift.io/runtime-version: "8"
+    name: ge-backend
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ge-backend:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        ref: ${BACKEND_GIT_REF}
+        uri: ${BACKEND_GIT_REPO}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: java:8
+          namespace: openshift
+      type: Source
+    triggers:
+    - generic:
+        secret: aaeaf7a61c526332
+      type: Generic
+    - github:
+        secret: 0d071f69cf43db6c
+      type: GitHub
+    - imageChange: {}
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${UI_GIT_REF}
+      app.openshift.io/vcs-uri: ${UI_GIT_REPO}
+    labels:
+      app: ge-ui
+      app.kubernetes.io/component: ge-ui
+      app.kubernetes.io/instance: ge-ui
+      app.kubernetes.io/name: nodejs
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: "10"
+    name: ge-ui
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ge-ui:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: /
+      git:
+        ref: ${UI_GIT_REF}
+        uri: ${UI_GIT_REPO}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs:10
+          namespace: openshift
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - generic:
+        secretReference:
+          name: ge-ui-generic-webhook-secret
+      type: Generic
+    - github:
+        secretReference:
+          name: ge-ui-github-webhook-secret
+      type: GitHub
+    - imageChange: {}
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+    
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${BACKEND_GIT_REF}
+      app.openshift.io/vcs-uri: ${BACKEND_GIT_REPO}
+    labels:
+      app: ge-backend
+      app.kubernetes.io/component: ge-backend
+      app.kubernetes.io/instance: ge-backend
+      app.kubernetes.io/name: ge-backend
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: java
+      app.openshift.io/runtime-version: "8"
+    name: ge-backend
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: ge-backend
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: ge-backend
+          deploymentconfig: ge-backend
+      spec:
+        containers:
+        - env:
+          - name: OB_API_KEY
+            value: ${OPINIONBEE_API_KEY}
+          - name: JAVA_OPTIONS
+            value: -Djava.net.preferIPv4Stack=true
+          image: ge-backend:latest
+          imagePullPolicy: Always
+          name: ge-backend
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          - containerPort: 8778
+            name: jolokia
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            failureThreshold: 2
+            httpGet:
+              path: "/api/health/liveness"
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 3
+            successThreashold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: "/api/health/readiness"
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreashold: 1
+            timeoutSeconds: 1
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ge-backend
+        from:
+          kind: ImageStreamTag
+          name: ge-backend:latest
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${UI_GIT_REF}
+      app.openshift.io/vcs-uri: ${UI_GIT_REPO}
+    labels:
+      app: ge-ui
+      app.kubernetes.io/component: ge-ui
+      app.kubernetes.io/instance: ge-ui
+      app.kubernetes.io/name: nodejs
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: "10"
+    name: ge-ui
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 5
+    selector:
+      app: ge-ui
+      deploymentconfig: ge-ui
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: ge-ui
+          deploymentconfig: ge-ui
+      spec:
+        containers:
+        - image: ge-ui:latest
+          imagePullPolicy: Always
+          name: ge-ui
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ge-ui
+        from:
+          kind: ImageStreamTag
+          name: ge-ui:latest
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+    
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${BACKEND_GIT_REF}
+      app.openshift.io/vcs-uri: ${BACKEND_GIT_REPO}
+    labels:
+      app: ge-backend
+      app.kubernetes.io/component: ge-backend
+      app.kubernetes.io/instance: ge-backend
+      app.kubernetes.io/name: ge-backend
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: java
+      app.openshift.io/runtime-version: "8"
+    name: ge-backend
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: ge-backend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      app.openshift.io/vcs-ref: ${UI_GIT_REF}
+      app.openshift.io/vcs-uri: ${UI_GIT_REPO}
+    labels:
+      app: ge-ui
+      app.kubernetes.io/component: ge-ui
+      app.kubernetes.io/instance: ge-ui
+      app.kubernetes.io/name: nodejs
+      app.kubernetes.io/part-of: ge-polling-app
+      app.openshift.io/runtime: nodejs
+      app.openshift.io/runtime-version: "10"
+    name: ge-ui
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ge-ui
+      deploymentconfig: ge-ui
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+
+# OpenShift Service Mesh objects
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: Gateway
+  metadata:
+    name: ge-gateway
+  spec:
+    selector:
+      istio: ingressgateway # use istio default controller
+    servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+      - "*"
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: VirtualService
+  metadata:
+    name: ge-polling-app
+  spec:
+    hosts:
+    - '*'
+    gateways:
+    - ge-gateway
+    http:
+    - match:
+      - uri:
+          exact: /ge
+      rewrite:
+        uri: /
+      route:
+      - destination:
+          host: ge-ui
+          port:
+            number: 8080
+    - match:
+      - uri:
+          prefix: /api
+      route:
+      - destination:
+          host: ge-backend
+          port:
+            number: 8080
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+  metadata:
+    name: ge-ui
+  spec:
+    host: ge-ui
+    trafficPolicy:
+      loadBalancer:
+        simple: LEAST_CONN
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+  metadata:
+    name: ge-backend
+  spec:
+    host: ge-backend
+    trafficPolicy:
+      loadBalancer:
+        simple: LEAST_CONN
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: ServiceEntry
+  metadata:
+    name: opinionbee
+  spec:
+    hosts:
+    - opinionbee.uk
+    ports:
+    - name: http
+      number: 80
+      protocol: HTTP
+    - name: https
+      number: 443
+      protocol: HTTPS
+    resolution: DNS
